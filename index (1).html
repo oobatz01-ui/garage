@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Автомойка — касса</title>
+
+<style>
+:root{
+  --teal:#1DB87A;--teal-l:rgba(29,184,122,.13);--teal-d:#0f9060;
+  --warn:#F0A030;--warn-l:rgba(240,160,48,.15);
+  --danger:#E04545;--danger-l:rgba(224,69,69,.13);
+  --info:#3A8EF0;--info-l:rgba(58,142,240,.13);
+  --purple:#9B59F5;--purple-l:rgba(155,89,245,.13);
+  --bg:#16161A;--bg2:#1E1E24;--bg3:#26262E;--bg4:#30303A;
+  --card:#1E1E24;--border:#32323C;--border2:#44444E;
+  --text:#EEEEF0;--text-sec:#8888A0;--text-dim:#44445A;
+  --r:12px;--rs:8px;
+  --sidebar:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;font-size:14px;}
+
+/* SIDEBAR */
+.sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10;}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo h1{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text);}
+.sidebar-logo h1 i{color:var(--teal);font-size:20px;}
+.sidebar-date{font-size:11px;color:var(--text-sec);margin-top:4px;}
+.sidebar-nav{flex:1;padding:12px 8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);cursor:pointer;color:var(--text-sec);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:2px;border:none;background:transparent;width:100%;text-align:left;}
+.nav-item i{font-size:18px;flex-shrink:0;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--teal-l);color:var(--teal);}
+.sidebar-bottom{padding:12px 8px;border-top:1px solid var(--border);}
+.box-mini{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--rs);margin-bottom:4px;background:var(--bg3);}
+.box-mini-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;}
+.box-mini-dot.busy{background:var(--warn);}
+.box-mini-info{flex:1;min-width:0;}
+.box-mini-name{font-size:12px;font-weight:600;color:var(--text);}
+.box-mini-timer{font-size:11px;color:var(--text-sec);font-variant-numeric:tabular-nums;}
+
+/* MAIN */
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.page-title{font-size:18px;font-weight:700;}
+.page-sub{font-size:12px;color:var(--text-sec);margin-top:2px;}
+.content{padding:24px 28px;flex:1;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;}
+.card+.card{margin-top:16px;}
+.sl{font-size:10px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;font-weight:700;}
+
+/* GRID LAYOUTS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+
+/* BOXES */
+.box-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.box-title{font-size:16px;font-weight:700;}
+.bst{font-size:11px;padding:4px 12px;border-radius:999px;font-weight:700;}
+.free{background:var(--teal-l);color:var(--teal);}
+.busy{background:var(--warn-l);color:var(--warn);}
+
+.timer{font-size:64px;font-weight:200;text-align:center;font-variant-numeric:tabular-nums;margin:8px 0 4px;color:var(--text-sec);letter-spacing:-2px;}
+.timer.running{color:var(--warn);}
+.timer.ending{color:var(--danger);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.price-live{text-align:center;font-size:28px;font-weight:800;color:var(--teal);margin-bottom:4px;}
+.price-hint{text-align:center;font-size:11px;color:var(--text-dim);margin-bottom:16px;}
+
+/* STEP */
+.step-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.step-badge{width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-label{font-size:11px;color:var(--text-sec);text-transform:uppercase;letter-spacing:.06em;font-weight:700;}
+
+/* BRANDS */
+.brand-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;max-height:200px;overflow-y:auto;padding-right:2px;}
+.brand-grid::-webkit-scrollbar{width:4px;}
+.brand-grid::-webkit-scrollbar-track{background:transparent;}
+.brand-grid::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.brand-btn{padding:7px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg3);font-size:12px;font-weight:600;cursor:pointer;color:var(--text-sec);text-align:center;transition:all .12s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand-btn:hover{border-color:var(--border2);color:var(--text);}
+.brand-btn.sel{border-color:var(--teal);background:var(--teal-l);color:var(--teal);}
+.brand-section-label{grid-column:1/-1;font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;padding:4px 0 2px;}
+.brand-divider{grid-column:1/-1;height:1px;background:var(--border);margin:4px 0;}
+
+/* INPUTS */
+.inp{width:100%;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);font-size:14px;background:var(--bg3);color:var(--text);outline:none;transition:border .15s;margin-bottom:8px;}
+.inp:focus{border-color:var(--teal);background:var(--bg2);}
+.inp.err{border-color:var(--danger);}
+.inp::placeholder{color:var(--text-dim);}
+.err-msg{font-size:11px;color:var(--danger);margin-top:-4px;margin-bottom:8px;display:none;}
+.err-msg.show{display:block;}
+
+/* BUTTONS */
+.btn{padding:11px 20px;border-radius:var(--rs);border:none;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px;}
+.btn i{font-size:18px;}
+.btn-green{background:var(--teal);color:#fff;width:100%;}
+.btn-green:hover{background:var(--teal-d);}
+.btn-red{background:var(--danger);color:#fff;width:100%;margin-top:10px;}
+.btn-red:hover{opacity:.9;}
+.btn-gray{background:var(--bg3);color:var(--text-sec);border:1px solid var(--border);width:100%;margin-top:8px;}
+.btn-gray:hover{background:var(--bg4);}
+.active-info{font-size:13px;color:var(--text-sec);line-height:1.9;background:var(--bg3);border-radius:var(--rs);padding:12px 14px;margin-bottom:10px;}
+.active-info b{color:var(--text);}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+/* PAY */
+.pay-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+.pay-btn{padding:10px 8px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg3);font-size:12px;font-weight:700;cursor:pointer;color:var(--text-sec);text-align:center;transition:all .15s;line-height:1.4;}
+.pay-btn i{display:block;font-size:22px;margin-bottom:4px;}
+.pay-btn:hover{border-color:var(--border2);}
+.pay-btn.sel-cash{border-color:var(--teal);background:var(--teal-l);color:var(--teal);}
+.pay-btn.sel-qr{border-color:var(--info);background:var(--info-l);color:var(--info);}
+.pay-btn.sel-tr{border-color:var(--purple);background:var(--purple-l);color:var(--purple);}
+.pay-btn.sel-debt{border-color:var(--danger);background:var(--danger-l);color:var(--danger);}
+
+/* EXTRAS */
+.extras-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.extra-item{border:1.5px solid var(--border);border-radius:var(--rs);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;background:var(--bg3);}
+.extra-item.active{border-color:var(--teal);background:var(--teal-l);}
+.extra-name{font-size:13px;font-weight:600;color:var(--text);}
+.extra-price{font-size:11px;color:var(--text-sec);}
+.extra-item.active .extra-name{color:var(--teal);}
+.extra-ctrl{display:flex;align-items:center;gap:8px;}
+.extra-qty{font-size:16px;font-weight:800;min-width:20px;text-align:center;color:var(--teal);}
+.extra-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);background:var(--bg2);color:var(--text-sec);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;transition:all .12s;}
+.extra-btn:hover{border-color:var(--teal);color:var(--teal);}
+.extra-item.active .extra-btn{border-color:var(--teal);background:rgba(29,184,122,.2);color:var(--teal);}
+
+/* STATS */
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;}
+.kpi-card{background:var(--bg3);border-radius:var(--rs);padding:16px;border:1px solid var(--border);}
+.kpi-label{font-size:10px;color:var(--text-sec);font-weight:700;letter-spacing:.06em;margin-bottom:6px;}
+.kpi-val{font-size:24px;font-weight:800;color:var(--text);}
+.kpi-sub{font-size:11px;color:var(--text-sec);margin-top:4px;}
+.pay-split{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.pay-card{border-radius:var(--rs);padding:12px 14px;background:var(--bg3);border:1px solid var(--border);}
+.pay-label{font-size:10px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:4px;}
+.pay-label i{font-size:14px;}
+.pay-val{font-size:16px;font-weight:800;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;color:var(--text-sec);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:.05em;}
+td{padding:11px 10px;border-bottom:1px solid var(--bg3);color:var(--text);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+.badge{font-size:11px;padding:3px 9px;border-radius:999px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
+.badge i{font-size:13px;}
+.b-cash{background:var(--teal-l);color:var(--teal);}
+.b-qr{background:var(--info-l);color:var(--info);}
+.b-tr{background:var(--purple-l);color:var(--purple);}
+.b-debt{background:var(--danger-l);color:var(--danger);}
+.empty{text-align:center;padding:3rem;color:var(--text-dim);font-size:13px;}
+.btn-reset{padding:10px 18px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text-sec);font-size:13px;cursor:pointer;font-weight:600;margin-top:12px;display:inline-flex;align-items:center;gap:6px;}
+.btn-reset:hover{background:var(--bg4);}
+
+/* DASHBOARD */
+.profit-card{background:linear-gradient(135deg,rgba(29,184,122,.18),rgba(29,184,122,.04));border:1px solid rgba(29,184,122,.3);border-radius:var(--r);padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.filter-btn{padding:8px 16px;border-radius:999px;border:1.5px solid var(--border);background:var(--bg3);color:var(--text-sec);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.filter-btn:hover{border-color:var(--teal);color:var(--teal);}
+.filter-btn.active{border-color:var(--teal);background:var(--teal-l);color:var(--teal);}
+.profit-left .profit-label{font-size:12px;color:var(--teal);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.profit-val{font-size:44px;font-weight:800;color:var(--teal);letter-spacing:-1px;}
+.profit-sub{font-size:12px;color:var(--text-sec);margin-top:4px;}
+.hour-bars{display:flex;align-items:flex-end;gap:4px;height:100px;margin-top:8px;}
+.hour-bar-wrap{display:flex;flex-direction:column;align-items:center;flex:1;}
+.hour-bar{width:100%;background:var(--teal);border-radius:3px 3px 0 0;min-height:3px;transition:height .3s;}
+.hour-label{font-size:9px;color:var(--text-dim);margin-top:4px;}
+
+/* DEBTS */
+.debt-total{background:var(--danger-l);border:1px solid rgba(224,69,69,.3);border-radius:var(--rs);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
+.debt-item{display:flex;align-items:center;gap:14px;padding:14px;border-radius:var(--rs);background:var(--bg3);border:1px solid var(--border);margin-bottom:8px;}
+.debt-info{flex:1;}
+.debt-name{font-size:14px;font-weight:600;}
+.debt-details{font-size:11px;color:var(--text-sec);margin-top:2px;}
+.debt-amount{font-size:20px;font-weight:800;color:var(--danger);}
+.debt-pay-btn{padding:7px 14px;border-radius:var(--rs);border:none;background:var(--teal-l);color:var(--teal);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.debt-pay-btn:hover{background:var(--teal);color:#fff;}
+
+/* CLIENTS */
+.client-card{background:var(--bg3);border-radius:var(--rs);border:1px solid var(--border);margin-bottom:8px;overflow:hidden;}
+.client-row{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;}
+.client-row:hover{background:var(--bg4);}
+.client-phone{font-size:14px;font-weight:600;}
+.client-name{font-size:13px;color:var(--teal);font-weight:600;}
+.client-meta{font-size:11px;color:var(--text-sec);margin-top:2px;}
+.client-total{font-size:18px;font-weight:800;color:var(--teal);}
+.client-history{border-top:1px solid var(--border);padding:12px 16px;display:none;}
+.client-history.open{display:block;}
+.visit-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.visit-row:last-child{border-bottom:none;}
+
+/* EXPENSES */
+.expense-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px;}
+.exp-total{font-size:18px;font-weight:800;color:var(--danger);}
+
+/* MODAL */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-backdrop.open{opacity:1;pointer-events:all;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:28px;width:520px;max-width:95vw;transform:scale(.96);transition:transform .2s;box-shadow:0 24px 64px rgba(0,0,0,.5);}
+.modal-backdrop.open .modal{transform:scale(1);}
+.modal-title{font-size:20px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;}
+.modal-title i{font-size:24px;color:var(--teal);}
+.modal-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.total-big{font-size:52px;font-weight:800;color:var(--teal);text-align:center;margin:12px 0 4px;letter-spacing:-2px;}
+.total-breakdown{text-align:center;font-size:13px;color:var(--text-sec);margin-bottom:20px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h1><span style="font-style:normal">🚗</span> Автомойка</h1>
+    <div class="sidebar-date" id="sidebar-date"></div>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" onclick="showTab('boxes')"><span style="font-style:normal">▦</span> Боксы</button>
+    <button class="nav-item" onclick="showTab('shift')"><span style="font-style:normal">▤</span> Смена</button>
+    <button class="nav-item" onclick="showTab('dash')"><span style="font-style:normal">◈</span> Отчёт</button>
+    <button class="nav-item" onclick="showTab('debts')"><span style="font-style:normal">⏱</span> Долги</button>
+    <button class="nav-item" onclick="showTab('clients')"><span style="font-style:normal">⚇</span> Клиенты</button>
+    <button class="nav-item" onclick="showTab('expenses')"><span style="font-style:normal">≡</span> Расходы</button>
+    <button class="nav-item" onclick="showTab('shiftlog')"><span style="font-style:normal">📋</span> История смен</button>
+  </nav>
+  <div class="sidebar-bottom">
+    <!-- Сотрудник и смена -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:10px;color:var(--text-sec);font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;">Сотрудник</div>
+      <input id="operator-name" type="text" placeholder="Введите имя..."
+        style="width:100%;padding:8px 10px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-weight:600;outline:none;"
+        value="" oninput="saveOperator(this.value)">
+    </div>
+    <div id="shift-status-block">
+      <div id="shift-status-idle">
+        <button onclick="startShift()" style="width:100%;padding:10px;border-radius:var(--rs);border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          ▶ Запустить смену
+        </button>
+      </div>
+      <div id="shift-status-active" style="display:none">
+        <div style="font-size:11px;color:var(--teal);font-weight:700;margin-bottom:5px;" id="shift-running-label">Смена идёт · 00:00</div>
+        <button onclick="stopShift()" style="width:100%;padding:10px;border-radius:var(--rs);border:none;background:var(--danger-l);color:var(--danger);border:1px solid rgba(224,69,69,.3);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+          ■ Остановить смену
+        </button>
+      </div>
+    </div>
+    <div style="height:10px;"></div>
+    <div class="box-mini" id="sb-box1">
+      <div class="box-mini-dot" id="sb-dot1"></div>
+      <div class="box-mini-info">
+        <div class="box-mini-name">Малый бокс</div>
+        <div class="box-mini-timer" id="sb-timer1">Свободен</div>
+      </div>
+    </div>
+    <div class="box-mini" id="sb-box2">
+      <div class="box-mini-dot" id="sb-dot2"></div>
+      <div class="box-mini-info">
+        <div class="box-mini-name">Большой бокс</div>
+        <div class="box-mini-timer" id="sb-timer2">Свободен</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="page-title">Боксы</div>
+      <div class="page-sub" id="page-sub">Запуск и контроль боксов</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- БОКСЫ -->
+    <div id="tab-boxes" class="tab-content" style="position:relative;">
+
+      <!-- Блокировка если смена не запущена -->
+      <div id="boxes-locked" style="display:none;position:absolute;inset:0;background:rgba(22,22,26,.92);z-index:50;flex-direction:column;align-items:center;justify-content:center;gap:16px;border-radius:var(--r);">
+        <div style="font-size:48px;">🔒</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">Смена не запущена</div>
+        <div style="font-size:14px;color:var(--text-sec);text-align:center;max-width:300px;">Введите имя сотрудника и нажмите «Запустить смену» в боковой панели</div>
+        <button onclick="document.getElementById('operator-name').focus()" style="padding:12px 28px;border-radius:var(--rs);border:none;background:var(--teal);color:#fff;font-size:15px;font-weight:700;cursor:pointer;">Перейти к запуску</button>
+      </div>
+
+      <div class="grid-2">
+
+        <!-- МАЛЫЙ -->
+        <div class="card">
+          <div class="box-header">
+            <span class="box-title"><span style="font-style:normal">🚗</span>Малый бокс</span>
+            <span id="b1-status" class="bst free">Свободен</span>
+          </div>
+          <div id="b1-timer" class="timer">00:00</div>
+          <div id="b1-price-live" class="price-live" style="display:none">1 500 ₸</div>
+          <div id="b1-price-hint" class="price-hint" style="display:none">минимум 1 500 ₸ · далее +50 ₸/мин</div>
+
+          <div id="b1-idle">
+            <div class="step-row"><span class="step-badge">1</span><span class="step-label">Марка автомобиля</span></div>
+            <div class="brand-grid" id="b1-brands"></div>
+            <div class="step-row"><span class="step-badge">2</span><span class="step-label">Контакт клиента</span></div>
+            <input class="inp" id="b1-phone" type="tel" placeholder="+7 (___) ___-__-__" maxlength="18" oninput="fmtPhone(this)" inputmode="tel">
+            <input class="inp" id="b1-name" type="text" placeholder="Имя клиента (необязательно)">
+            <div id="b1-err" class="err-msg">Укажите марку автомобиля и номер телефона</div>
+            <button class="btn btn-green" onclick="startBox(1)"><span style="font-style:normal">▶</span> Запустить бокс</button>
+          </div>
+
+          <div id="b1-active" style="display:none">
+            <div class="active-info" id="b1-info"></div>
+            <button class="btn btn-red" onclick="finishBox(1)"><span style="font-style:normal">■</span> Завершить и принять оплату</button>
+          </div>
+        </div>
+
+        <!-- БОЛЬШОЙ -->
+        <div class="card">
+          <div class="box-header">
+            <span class="box-title"><span style="font-style:normal">🚗</span>Большой бокс</span>
+            <span id="b2-status" class="bst free">Свободен</span>
+          </div>
+          <div id="b2-timer" class="timer">00:00</div>
+          <div id="b2-price-live" class="price-live" style="display:none">1 500 ₸</div>
+          <div id="b2-price-hint" class="price-hint" style="display:none">минимум 1 500 ₸ · далее +50 ₸/мин</div>
+
+          <div id="b2-idle">
+            <div class="step-row"><span class="step-badge">1</span><span class="step-label">Марка автомобиля</span></div>
+            <div class="brand-grid" id="b2-brands"></div>
+            <div class="step-row"><span class="step-badge">2</span><span class="step-label">Контакт клиента</span></div>
+            <input class="inp" id="b2-phone" type="tel" placeholder="+7 (___) ___-__-__" maxlength="18" oninput="fmtPhone(this)" inputmode="tel">
+            <input class="inp" id="b2-name" type="text" placeholder="Имя клиента (необязательно)">
+            <div id="b2-err" class="err-msg">Укажите марку автомобиля и номер телефона</div>
+            <button class="btn btn-green" onclick="startBox(2)"><span style="font-style:normal">▶</span> Запустить бокс</button>
+          </div>
+
+          <div id="b2-active" style="display:none">
+            <div class="active-info" id="b2-info"></div>
+            <button class="btn btn-red" onclick="finishBox(2)"><span style="font-style:normal">■</span> Завершить и принять оплату</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- СМЕНА -->
+    <div id="tab-shift" class="tab-content" style="display:none">
+      <div class="kpi-grid">
+        <div class="kpi-card"><div class="kpi-label">МАШИН ЗА СМЕНУ</div><div class="kpi-val" id="s-count">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">ВЫРУЧКА</div><div class="kpi-val" id="s-rev">0 ₸</div></div>
+        <div class="kpi-card"><div class="kpi-label">СРЕДНИЙ ЧЕК</div><div class="kpi-val" id="s-avg">0 ₸</div></div>
+      </div>
+      <div class="pay-split">
+        <div class="pay-card"><div class="pay-label" style="color:var(--teal)"><span style="font-style:normal">₸</span>Наличка</div><div class="pay-val" id="s-cash" style="color:var(--teal)">0 ₸</div></div>
+        <div class="pay-card"><div class="pay-label" style="color:var(--info)"><span style="font-style:normal">▣</span>Kaspi QR</div><div class="pay-val" id="s-qr" style="color:var(--info)">0 ₸</div></div>
+        <div class="pay-card"><div class="pay-label" style="color:var(--purple)"><span style="font-style:normal">➤</span>Перевод</div><div class="pay-val" id="s-tr" style="color:var(--purple)">0 ₸</div></div>
+        <div class="pay-card"><div class="pay-label" style="color:var(--danger)"><span style="font-style:normal">⏱</span>Долг</div><div class="pay-val" id="s-debt" style="color:var(--danger)">0 ₸</div></div>
+      </div>
+      <div class="card">
+        <p class="sl" style="margin-bottom:14px">Журнал сеансов</p>
+        <div id="log-cont"><div class="empty">Сеансов пока нет</div></div>
+      </div>
+      <div id="shift-info" style="margin-top:10px;font-size:12px;color:var(--text-sec);"></div>
+      <div id="shift-confirm" style="display:none;margin-top:12px;background:var(--teal-l);border:1px solid rgba(29,184,122,.3);border-radius:var(--rs);padding:14px 16px;">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Начать новый рабочий день?</div>
+        <div style="font-size:12px;color:var(--text-sec);margin-bottom:10px;">Журнал смены обнулится. Все данные сохраняются в истории и отчёте.</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="doStartNewShift()" style="padding:9px 18px;border-radius:var(--rs);border:none;background:var(--teal);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Да, начать новый день</button>
+          <button onclick="document.getElementById('shift-confirm').style.display='none'" style="padding:9px 18px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text-sec);font-size:13px;cursor:pointer;">Отмена</button>
+        </div>
+      </div>
+      <button class="btn-reset" onclick="document.getElementById('shift-confirm').style.display=document.getElementById('shift-confirm').style.display==='block'?'none':'block'">↺ Начать новый рабочий день</button>
+    </div>
+
+    <!-- ОТЧЁТ -->
+    <div id="tab-dash" class="tab-content" style="display:none">
+      <!-- Фильтр дат -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <button class="filter-btn active" onclick="setFilter('today',this)">Сегодня</button>
+        <button class="filter-btn" onclick="setFilter('yesterday',this)">Вчера</button>
+        <button class="filter-btn" onclick="setFilter('week',this)">7 дней</button>
+        <button class="filter-btn" onclick="setFilter('month',this)">Месяц</button>
+        <button class="filter-btn" onclick="setFilter('3months',this)">3 месяца</button>
+        <button class="filter-btn" onclick="setFilter('all',this)">Всё время</button>
+        <button class="filter-btn" onclick="setFilter('custom',this)" id="custom-filter-btn">Произвольный</button>
+      </div>
+      <div id="custom-date-row" style="display:none;gap:10px;align-items:center;margin-bottom:16px;background:var(--bg3);padding:12px 14px;border-radius:var(--rs);border:1px solid var(--border);">
+        <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">С:</label>
+        <input type="date" id="custom-date-from" style="padding:7px 10px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;outline:none;" onchange="renderDash()">
+        <label style="font-size:12px;color:var(--text-sec);white-space:nowrap;">По:</label>
+        <input type="date" id="custom-date-to" style="padding:7px 10px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;outline:none;" onchange="renderDash()">
+      </div>
+      <div class="profit-card">
+        <div class="profit-left">
+          <div class="profit-label" id="d-profit-label">↗ Прибыль · Сегодня</div>
+          <div class="profit-val" id="d-profit">0 ₸</div>
+          <div class="profit-sub" id="d-profit-sub">выручка 0 ₸ − расходы 0 ₸</div>
+        </div>
+      </div>
+      <div class="grid-4" style="margin-bottom:16px">
+        <div class="kpi-card"><div class="kpi-label">МАШИН СЕГОДНЯ</div><div class="kpi-val" id="d-cars">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">СРЕДНИЙ ЧЕК</div><div class="kpi-val" id="d-avg">0 ₸</div></div>
+        <div class="kpi-card"><div class="kpi-label">ВЫРУЧКА НЕДЕЛЯ</div><div class="kpi-val" id="d-week">0 ₸</div></div>
+        <div class="kpi-card"><div class="kpi-label">ВЫРУЧКА МЕСЯЦ</div><div class="kpi-val" id="d-month">0 ₸</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <p class="sl">Загрузка по часам (сегодня)</p>
+          <div class="hour-bars" id="d-hours"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span style="font-size:9px;color:var(--text-dim)">8:00</span>
+            <span style="font-size:9px;color:var(--text-dim)">14:00</span>
+            <span style="font-size:9px;color:var(--text-dim)">21:00</span>
+          </div>
+        </div>
+        <div class="card">
+          <p class="sl">Топ-5 клиентов</p>
+          <div id="d-top-clients"><div class="empty" style="padding:1.5rem">Нет данных</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ДОЛГИ -->
+    <div id="tab-debts" class="tab-content" style="display:none">
+      <div class="debt-total">
+        <span style="font-size:13px;color:var(--danger);font-weight:700;display:flex;align-items:center;gap:6px;"><span style="font-style:normal">⏱</span> Общая сумма долгов</span>
+        <span style="font-size:22px;font-weight:800;color:var(--danger);" id="debt-total-val">0 ₸</span>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <p class="sl" style="margin-bottom:12px">Добавить долг вручную</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;">
+          <div><label style="font-size:11px;color:var(--text-sec);display:block;margin-bottom:4px;">Имя / телефон</label><input class="inp" id="debt-name" type="text" placeholder="Клиент" style="margin:0"></div>
+          <div><label style="font-size:11px;color:var(--text-sec);display:block;margin-bottom:4px;">Сумма (₸)</label><input class="inp" id="debt-amount" type="number" placeholder="0" inputmode="numeric" style="margin:0"></div>
+          <div><label style="font-size:11px;color:var(--text-sec);display:block;margin-bottom:4px;">Комментарий</label><input class="inp" id="debt-note" type="text" placeholder="Необязательно" style="margin:0"></div>
+          <button class="btn btn-red" style="margin:0;width:auto;padding:10px 18px;" onclick="addDebt()"><span style="font-style:normal">+</span> Добавить</button>
+        </div>
+      </div>
+      <div id="debts-list"><div class="empty">Долгов нет</div></div>
+      <div style="margin-top:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <p class="sl" style="margin-bottom:0">Погашенные долги</p>
+          <button onclick="togglePaidDebts()" id="paid-toggle-btn" style="font-size:12px;color:var(--text-sec);background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:var(--rs);border:1px solid var(--border);">Показать</button>
+        </div>
+        <div id="paid-debts-list" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- КЛИЕНТЫ -->
+    <div id="tab-clients" class="tab-content" style="display:none">
+      <div class="card" style="margin-bottom:16px;padding:12px 16px;">
+        <input id="client-search" type="text" placeholder="Поиск по номеру или имени..."
+          style="width:100%;padding:10px 14px;border-radius:var(--rs);border:1.5px solid var(--border);font-size:14px;background:var(--bg3);color:var(--text);outline:none;"
+          oninput="renderClients()">
+      </div>
+      <div id="clients-cont"><div class="empty">Появятся после первого сеанса с телефоном</div></div>
+    </div>
+
+    <!-- РАСХОДЫ -->
+    <div id="tab-expenses" class="tab-content" style="display:none">
+      <div class="card" style="margin-bottom:16px">
+        <p class="sl" style="margin-bottom:12px">Добавить расход</p>
+        <div class="expense-form">
+          <div>
+            <label style="font-size:11px;color:var(--text-sec);display:block;margin-bottom:4px;">Категория</label>
+            <select class="inp" id="exp-cat" style="margin:0;appearance:none;">
+              <option value="">Выберите...</option>
+              <option>Автошампунь</option><option>Чернитель</option><option>Воск</option>
+              <option>Очиститель</option><option>Очистка колодца</option>
+              <option>Технические расходы</option><option>Уборка</option><option>Другое</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-sec);display:block;margin-bottom:4px;">Описание</label>
+            <input class="inp" id="exp-desc" type="text" placeholder="Необязательно" style="margin:0">
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--text-sec);display:block;margin-bottom:4px;">Сумма (₸)</label>
+            <input class="inp" id="exp-amount" type="number" placeholder="0" inputmode="numeric" style="margin:0">
+          </div>
+          <button class="btn btn-red" style="margin:0;width:auto;padding:10px 18px;" onclick="addExpense()"><span style="font-style:normal">+</span> Добавить</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <p class="sl" style="margin-bottom:0">Расходы за смену</p>
+          <span class="exp-total" id="exp-total-badge">0 ₸</span>
+        </div>
+        <div id="exp-cont"><div class="empty">Расходов пока нет</div></div>
+      </div>
+    </div>
+
+    <!-- ИСТОРИЯ СМЕН -->
+    <div id="tab-shiftlog" class="tab-content" style="display:none">
+      <div class="grid-4" style="margin-bottom:16px">
+        <div class="kpi-card"><div class="kpi-label">ВСЕГО СМЕН</div><div class="kpi-val" id="sl-total">0</div></div>
+        <div class="kpi-card"><div class="kpi-label">ОБЩАЯ ВЫРУЧКА</div><div class="kpi-val" id="sl-rev">0 ₸</div></div>
+        <div class="kpi-card"><div class="kpi-label">СРЕДНЕЕ ЗА СМЕНУ</div><div class="kpi-val" id="sl-avg">0 ₸</div></div>
+        <div class="kpi-card"><div class="kpi-label">СРЕД. ДЛИТ. СМЕНЫ</div><div class="kpi-val" id="sl-dur">0 ч</div></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <p class="sl" style="margin-bottom:0">Журнал смен</p>
+          <input id="sl-search" type="text" placeholder="Поиск по сотруднику..."
+            style="padding:7px 12px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;outline:none;width:220px;"
+            oninput="renderShiftLog()">
+        </div>
+        <div id="sl-cont"><div class="empty">Смен пока нет</div></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ИТОГОВЫЙ МОДАЛ -->
+<div class="modal-backdrop" id="finish-modal">
+  <div class="modal">
+    <div class="modal-title"><span style="font-style:normal">✓</span> Завершение сеанса</div>
+    <div class="modal-cols">
+      <div>
+        <div class="total-big" id="m-total">0 ₸</div>
+        <div class="total-breakdown" id="m-breakdown"></div>
+        <p class="sl" style="margin-bottom:10px">Способ оплаты</p>
+        <div class="pay-grid" id="m-pay-row">
+          <button class="pay-btn" onclick="selModalPay('Наличка',this)"><span style="font-style:normal">₸</span>Наличка</button>
+          <button class="pay-btn" onclick="selModalPay('Kaspi QR',this)"><span style="font-style:normal">▣</span>Kaspi QR</button>
+          <button class="pay-btn" onclick="selModalPay('Перевод',this)"><span style="font-style:normal">➤</span>Перевод</button>
+          <button class="pay-btn" onclick="selModalPay('Долг',this)"><span style="font-style:normal">⏱</span>Долг</button>
+        </div>
+        <button class="btn btn-green" onclick="confirmSession()" style="margin-top:8px">
+          <span style="font-style:normal">✓</span> Подтвердить оплату
+        </button>
+        <button class="btn btn-gray" onclick="closeModal()">Отмена</button>
+      </div>
+      <div>
+        <p class="sl" style="margin-bottom:10px">Доп. продажи</p>
+        <div class="extras-list" id="m-extras"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const POPULAR_COUNT = 21;
+const BRANDS = [
+  'Toyota','Hyundai','Kia','Mercedes','BMW','Audi','Lada','Chevrolet','Daewoo',
+  'Nissan','Honda','Mazda','Mitsubishi','Volkswagen','Lexus','Land Rover',
+  'Geely','Haval','Chery','Skoda','Subaru',
+  'Acura','Alfa Romeo','Aston Martin','Bentley','BYD','Cadillac','Chrysler',
+  'Citroen','Dodge','Ferrari','Fiat','Ford','GAC','Genesis','Infiniti',
+  'Isuzu','JAC','Jaguar','Jeep','Lamborghini','Li Auto','Lincoln','Maserati',
+  'McLaren','Mini','NIO','Opel','Peugeot','Porsche','RAM','Ravon','Renault',
+  'Rolls-Royce','SEAT','Ssangyong','Suzuki','Tesla','Volvo','Xpeng',
+];
+
+const EXTRAS=[
+  {id:'cloth', name:'Тряпка 60×50',      price:1500},
+  {id:'phase2',name:'2-я фаза мойки',    price:250},
+  {id:'plate', name:'Подномерник 2 шт',  price:2000},
+  {id:'brush', name:'Щётка чернения',    price:1000},
+  {id:'wash',  name:'Омывайка',          price:1000},
+  {id:'aroma', name:'Ароматизатор',      price:1500},
+];
+
+const S={
+  boxes:{
+    1:{brand:'',phone:'',name:'',timer:null,elapsed:0,startTime:null},
+    2:{brand:'',phone:'',name:'',timer:null,elapsed:0,startTime:null}
+  },
+  pending:null,
+  shiftStartDate: localStorage.getItem('cw_shiftStart') || new Date().toLocaleDateString('ru-RU'),
+  shiftStartTs: parseInt(localStorage.getItem('cw_shiftStartTs')||'0') || Date.now(),
+  shiftActive: localStorage.getItem('cw_shiftActive')==='1',
+  shiftElapsed: parseInt(localStorage.getItem('cw_shiftElapsed')||'0'),
+  operatorName: localStorage.getItem('cw_operator')||'',
+  sessions: JSON.parse(localStorage.getItem('cw_sessions')||'[]'),
+  clients:  JSON.parse(localStorage.getItem('cw_clients')||'{}'),
+  expenses: JSON.parse(localStorage.getItem('cw_expenses')||'[]'),
+  debts:    JSON.parse(localStorage.getItem('cw_debts')||'[]'),
+  shiftLog: JSON.parse(localStorage.getItem('cw_shiftlog')||'[]'),
+  modal:{pay:'',extras:{}},
+};
+
+function save(){
+  localStorage.setItem('cw_sessions',JSON.stringify(S.sessions));
+  localStorage.setItem('cw_clients', JSON.stringify(S.clients));
+  localStorage.setItem('cw_expenses',JSON.stringify(S.expenses));
+  localStorage.setItem('cw_debts',   JSON.stringify(S.debts));
+  localStorage.setItem('cw_shiftlog',JSON.stringify(S.shiftLog));
+}
+
+function updateBoxesLock(){
+  const locked=document.getElementById('boxes-locked');
+  if(!locked)return;
+  locked.style.display=S.shiftActive?'none':'flex';
+}
+
+function saveOperator(name){
+  S.operatorName=name;
+  localStorage.setItem('cw_operator',name);
+}
+
+let shiftTimer=null;
+function startShift(){
+  const opName=document.getElementById('operator-name').value.trim();
+  if(!opName){document.getElementById('operator-name').focus();document.getElementById('operator-name').style.borderColor='var(--danger)';setTimeout(()=>document.getElementById('operator-name').style.borderColor='',2000);return;}
+  S.shiftActive=true;
+  S.shiftStartTs=Date.now();
+  S.shiftStartDate=new Date().toLocaleDateString('ru-RU');
+  S.shiftElapsed=0;
+  S.liveSessions={};
+  localStorage.setItem('cw_shiftActive','1');
+  localStorage.setItem('cw_shiftStart',S.shiftStartDate);
+  localStorage.setItem('cw_shiftStartTs',S.shiftStartTs);
+  localStorage.setItem('cw_shiftElapsed','0');
+  document.getElementById('shift-status-idle').style.display='none';
+  document.getElementById('shift-status-active').style.display='block';
+  shiftTimer=setInterval(tickShift,1000);
+  updateBoxesLock();
+  renderShift();
+  playBeep(523,0.1);setTimeout(()=>playBeep(659,0.1),120);setTimeout(()=>playBeep(784,0.15),240);
+}
+
+function tickShift(){
+  S.shiftElapsed++;
+  localStorage.setItem('cw_shiftElapsed',S.shiftElapsed);
+  const h=Math.floor(S.shiftElapsed/3600);
+  const m=Math.floor((S.shiftElapsed%3600)/60);
+  const s=S.shiftElapsed%60;
+  const label=h>0?`${h}ч ${String(m).padStart(2,'0')}м`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const el=document.getElementById('shift-running-label');
+  if(el)el.textContent=`▶ Смена идёт · ${label}`;
+}
+
+function stopShift(){
+  S.shiftActive=false;
+  clearInterval(shiftTimer);shiftTimer=null;
+  localStorage.setItem('cw_shiftActive','0');
+  document.getElementById('shift-status-idle').style.display='block';
+  document.getElementById('shift-status-active').style.display='none';
+  updateBoxesLock();
+
+  const endTs=Date.now();
+  const shiftSessions=S.sessions.filter(s=>(s.ts||0)>=S.shiftStartTs);
+  const revenue=shiftSessions.reduce((s,x)=>s+x.total,0);
+  const expenseTotal=S.expenses.reduce((s,x)=>s+x.amount,0);
+  const record={
+    id:S.shiftStartTs,
+    operator:S.operatorName,
+    date:new Date(S.shiftStartTs).toLocaleDateString('ru-RU'),
+    startTime:new Date(S.shiftStartTs).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    endTime:new Date(endTs).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    durationSec:S.shiftElapsed,
+    cars:shiftSessions.length,
+    revenue,
+    expenses:expenseTotal,
+    profit:revenue-expenseTotal,
+    byPay:{
+      cash: shiftSessions.filter(x=>x.pay==='Наличка').reduce((s,x)=>s+x.total,0),
+      qr:   shiftSessions.filter(x=>x.pay==='Kaspi QR').reduce((s,x)=>s+x.total,0),
+      tr:   shiftSessions.filter(x=>x.pay==='Перевод').reduce((s,x)=>s+x.total,0),
+      debt: shiftSessions.filter(x=>x.pay==='Долг').reduce((s,x)=>s+x.total,0),
+    }
+  };
+  S.shiftLog.push(record);
+  save();
+
+  const h=Math.floor(S.shiftElapsed/3600);
+  const m=Math.floor((S.shiftElapsed%3600)/60);
+  const dur=h>0?`${h} ч ${m} мин`:`${m} мин`;
+  alert(`Смена завершена!\n\nСотрудник: ${S.operatorName}\nДлительность: ${dur}\nМашин: ${shiftSessions.length}\nВыручка: ${revenue.toLocaleString()} ₸`);
+}
+
+// Восстановить состояние смены при загрузке
+function restoreShiftState(){
+  const nameEl=document.getElementById('operator-name');
+  if(nameEl&&S.operatorName)nameEl.value=S.operatorName;
+  if(S.shiftActive){
+    const elapsed=Math.floor((Date.now()-S.shiftStartTs)/1000);
+    S.shiftElapsed=elapsed;
+    document.getElementById('shift-status-idle').style.display='none';
+    document.getElementById('shift-status-active').style.display='block';
+    shiftTimer=setInterval(tickShift,1000);
+    tickShift();
+  }
+  updateBoxesLock();
+}
+
+function calcPrice(sec){const m=Math.ceil(sec/60);return m<=30?1500:1500+(m-30)*50;}
+
+// DATE
+const now=new Date();
+document.getElementById('sidebar-date').textContent=
+  now.toLocaleDateString('ru-RU',{weekday:'long',day:'numeric',month:'long'});
+
+// BRANDS
+function renderBrands(box){
+  const sel=S.boxes[box].brand;
+  let h='<div class="brand-section-label">Популярные в Казахстане</div>';
+  h+=BRANDS.slice(0,POPULAR_COUNT).map(b=>`<button class="brand-btn${sel===b?' sel':''}" onclick="selBrand(${box},'${b}')">${b}</button>`).join('');
+  h+='<div class="brand-divider"></div><div class="brand-section-label">Все марки</div>';
+  h+=BRANDS.slice(POPULAR_COUNT).map(b=>`<button class="brand-btn${sel===b?' sel':''}" onclick="selBrand(${box},'${b}')">${b}</button>`).join('');
+  document.getElementById('b'+box+'-brands').innerHTML=h;
+}
+renderBrands(1);renderBrands(2);
+
+function selBrand(box,brand){
+  S.boxes[box].brand=brand;
+  renderBrands(box);
+}
+
+// PHONE
+function fmtPhone(input){
+  let v=input.value.replace(/\D/g,'');
+  if(v.startsWith('8'))v='7'+v.slice(1);
+  if(!v.startsWith('7'))v='7'+v;
+  v=v.slice(0,11);
+  let r='+7';
+  if(v.length>1)r+=' ('+v.slice(1,4);
+  if(v.length>4)r+=') '+v.slice(4,7);
+  if(v.length>7)r+='-'+v.slice(7,9);
+  if(v.length>9)r+='-'+v.slice(9,11);
+  input.value=r;
+  input.classList.remove('err');
+}
+
+// SOUND
+function playBeep(freq=880,dur=0.3,vol=0.5){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=freq;o.type='sine';
+    g.gain.setValueAtTime(vol,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    o.start();o.stop(ctx.currentTime+dur);
+  }catch(e){}
+}
+function playAlarm(){
+  playBeep(880,0.2,0.6);
+  setTimeout(()=>playBeep(1100,0.2,0.6),250);
+  setTimeout(()=>playBeep(880,0.3,0.6),500);
+}
+
+// START BOX
+function startBox(box){
+  const b=S.boxes[box];
+  const phone=document.getElementById('b'+box+'-phone').value;
+  if(!b.brand||phone.replace(/\D/g,'').length<11){
+    document.getElementById('b'+box+'-err').classList.add('show');
+    setTimeout(()=>document.getElementById('b'+box+'-err').classList.remove('show'),3000);
+    return;
+  }
+  b.phone=phone;
+  b.name=document.getElementById('b'+box+'-name').value.trim();
+  b.elapsed=0;b.startTime=new Date();
+  // Фиксируем сеанс сразу при запуске
+  b.sessionId = Date.now();
+  S.liveSessions = S.liveSessions||{};
+  S.liveSessions[b.sessionId]={
+    id:b.sessionId, box, phone:b.phone, name:b.name, car:b.brand,
+    startTime:b.startTime.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    date:b.startTime.toLocaleDateString('ru-RU'),
+    status:'active'
+  };
+  renderShift();
+  document.getElementById('b'+box+'-idle').style.display='none';
+  document.getElementById('b'+box+'-active').style.display='block';
+  document.getElementById('b'+box+'-price-live').style.display='block';
+  document.getElementById('b'+box+'-price-hint').style.display='block';
+  document.getElementById('b'+box+'-status').textContent='Идёт мойка';
+  document.getElementById('b'+box+'-status').className='bst busy';
+  document.getElementById('b'+box+'-info').innerHTML=
+    `<b>${b.brand}</b>${b.name?' · <b>'+b.name+'</b>':''}<br><span style="font-style:normal">✆</span> ${b.phone}`;
+  // Sidebar
+  document.getElementById('sb-dot'+box).classList.add('busy');
+  b.timer=setInterval(()=>tick(box),1000);
+  playBeep(660,0.15);
+}
+
+let alarmShown={1:false,2:false};
+function tick(box){
+  const b=S.boxes[box];b.elapsed++;
+  const m=Math.floor(b.elapsed/60),s=b.elapsed%60;
+  const ts=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  document.getElementById('b'+box+'-timer').textContent=ts;
+  document.getElementById('sb-timer'+box).textContent=ts;
+  document.getElementById('b'+box+'-price-live').textContent=calcPrice(b.elapsed).toLocaleString()+' ₸';
+  if(b.elapsed===28*60&&!alarmShown[box]){alarmShown[box]=true;playBeep(660,0.15);setTimeout(()=>playBeep(880,0.15),200);}
+  if(b.elapsed===30*60){document.getElementById('b'+box+'-timer').className='timer ending';playAlarm();}
+  else if(b.elapsed>30*60)document.getElementById('b'+box+'-timer').className='timer ending';
+  else document.getElementById('b'+box+'-timer').className='timer running';
+}
+
+// FINISH BOX
+function finishBox(box){
+  const b=S.boxes[box];
+  clearInterval(b.timer);alarmShown[box]=false;
+  if(b.sessionId&&S.liveSessions){delete S.liveSessions[b.sessionId];}
+  const washPrice=calcPrice(b.elapsed);
+  S.pending={box,phone:b.phone,name:b.name,car:b.brand,price:washPrice,elapsed:b.elapsed,
+    time:(b.startTime||new Date()).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    date:(b.startTime||new Date()).toLocaleDateString('ru-RU')};
+  S.modal={pay:'',extras:{}};
+  document.getElementById('m-total').textContent=washPrice.toLocaleString()+' ₸';
+  document.getElementById('m-breakdown').textContent=`Мойка · ${Math.ceil(b.elapsed/60)} мин`;
+  document.getElementById('m-pay-row').querySelectorAll('.pay-btn').forEach(btn=>btn.classList.remove('sel-cash','sel-qr','sel-tr','sel-debt'));
+  document.getElementById('m-extras').innerHTML=EXTRAS.map(e=>`
+    <div class="extra-item" id="mex-${e.id}">
+      <div><div class="extra-name">${e.name}</div><div class="extra-price">${e.price.toLocaleString()} ₸</div></div>
+      <div class="extra-ctrl">
+        <button class="extra-btn" onclick="chModalExtra('${e.id}',-1)">−</button>
+        <span class="extra-qty" id="mexq-${e.id}">0</span>
+        <button class="extra-btn" onclick="chModalExtra('${e.id}',1)">+</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('finish-modal').classList.add('open');
+}
+
+function chModalExtra(id,d){
+  S.modal.extras[id]=Math.max(0,(S.modal.extras[id]||0)+d);
+  const qty=S.modal.extras[id];
+  document.getElementById('mexq-'+id).textContent=qty||'0';
+  document.getElementById('mex-'+id).classList.toggle('active',qty>0);
+  updateModalTotal();
+}
+function updateModalTotal(){
+  if(!S.pending)return;
+  const ext=Object.entries(S.modal.extras).reduce((s,[id,q])=>{const e=EXTRAS.find(x=>x.id===id);return s+(e?e.price*q:0);},0);
+  const total=S.pending.price+ext;
+  document.getElementById('m-total').textContent=total.toLocaleString()+' ₸';
+  document.getElementById('m-breakdown').textContent=
+    `Мойка ${S.pending.price.toLocaleString()} ₸`+(ext?` + доп ${ext.toLocaleString()} ₸`:'');
+}
+function selModalPay(type,el){
+  S.modal.pay=type;
+  document.getElementById('m-pay-row').querySelectorAll('.pay-btn').forEach(b=>b.classList.remove('sel-cash','sel-qr','sel-tr','sel-debt'));
+  el.classList.add({Наличка:'sel-cash','Kaspi QR':'sel-qr',Перевод:'sel-tr',Долг:'sel-debt'}[type]);
+}
+function closeModal(){document.getElementById('finish-modal').classList.remove('open');}
+
+function confirmSession(){
+  if(!S.modal.pay){alert('Выберите способ оплаты');return;}
+  const ext=Object.entries(S.modal.extras).reduce((s,[id,q])=>{const e=EXTRAS.find(x=>x.id===id);return s+(e?e.price*q:0);},0);
+  const sess={...S.pending,extras:ext,total:S.pending.price+ext,pay:S.modal.pay,ts:Date.now()};
+  S.sessions.push(sess);
+  const ph=sess.phone;
+  if(ph){
+    if(!S.clients[ph])S.clients[ph]={phone:ph,name:'',visits:0,total:0,lastCar:'',lastDate:'',history:[]};
+    if(sess.name)S.clients[ph].name=sess.name;
+    S.clients[ph].visits++;S.clients[ph].total+=sess.total;
+    S.clients[ph].lastCar=sess.car;S.clients[ph].lastDate=sess.date;
+    S.clients[ph].history=S.clients[ph].history||[];
+    S.clients[ph].history.push({date:sess.date,time:sess.time,car:sess.car,total:sess.total,pay:sess.pay});
+  }
+  if(S.modal.pay==='Долг'){
+    S.debts.push({id:Date.now(),name:sess.name||ph||sess.car,amount:sess.total,
+      note:'Авто: '+sess.car,date:sess.date,paid:false});
+  }
+  save();
+  closeModal();
+  resetBox(S.pending.box);
+  S.pending=null;
+  renderShift();
+  playBeep(523,0.12);setTimeout(()=>playBeep(659,0.12),150);setTimeout(()=>playBeep(784,0.18),300);
+}
+
+function resetBox(box){
+  const b=S.boxes[box];
+  b.elapsed=0;b.brand='';b.phone='';b.name='';
+  document.getElementById('b'+box+'-timer').textContent='00:00';
+  document.getElementById('b'+box+'-timer').className='timer';
+  document.getElementById('b'+box+'-price-live').style.display='none';
+  document.getElementById('b'+box+'-price-hint').style.display='none';
+  document.getElementById('b'+box+'-idle').style.display='block';
+  document.getElementById('b'+box+'-active').style.display='none';
+  document.getElementById('b'+box+'-status').textContent='Свободен';
+  document.getElementById('b'+box+'-status').className='bst free';
+  document.getElementById('b'+box+'-phone').value='';
+  document.getElementById('b'+box+'-name').value='';
+  document.getElementById('sb-dot'+box).classList.remove('busy');
+  document.getElementById('sb-timer'+box).textContent='Свободен';
+  renderBrands(box);
+}
+
+// TABS
+const TAB_META={
+  boxes:{title:'Боксы',sub:'Запуск и контроль боксов'},
+  shift:{title:'Смена',sub:'Статистика текущей смены'},
+  dash:{title:'Отчёт',sub:'Аналитика для руководителя'},
+  debts:{title:'Долги',sub:'Учёт задолженностей'},
+  clients:{title:'Клиенты',sub:'База клиентов'},
+  expenses:{title:'Расходы',sub:'Учёт расходов за смену'},
+  shiftlog:{title:'История смен',sub:'Полный отчёт по каждой смене'},
+};
+function showTab(t){
+  document.querySelectorAll('.tab-content').forEach(el=>el.style.display='none');
+  document.getElementById('tab-'+t).style.display='block';
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[Object.keys(TAB_META).indexOf(t)].classList.add('active');
+  document.getElementById('page-title').textContent=TAB_META[t].title;
+  document.getElementById('page-sub').textContent=TAB_META[t].sub;
+  if(t==='shift')renderShift();
+  if(t==='dash')renderDash();
+  if(t==='debts')renderDebts();
+  if(t==='clients')renderClients();
+  if(t==='expenses')renderExpenses();
+  if(t==='shiftlog')renderShiftLog();
+}
+
+// SHIFT
+function renderShift(){
+  // Фильтруем по точному timestamp начала смены
+  const shiftSessions=S.sessions.filter(s=>(s.ts||0)>=S.shiftStartTs);
+  const tot=shiftSessions.reduce((s,x)=>s+x.total,0);
+  const cnt=shiftSessions.length;
+  const byPay=p=>shiftSessions.filter(x=>x.pay===p).reduce((s,x)=>s+x.total,0);
+  document.getElementById('s-count').textContent=cnt;
+  document.getElementById('s-rev').textContent=tot.toLocaleString()+' ₸';
+  document.getElementById('s-avg').textContent=cnt?Math.round(tot/cnt).toLocaleString()+' ₸':'0 ₸';
+  document.getElementById('s-cash').textContent=byPay('Наличка').toLocaleString()+' ₸';
+  document.getElementById('s-qr').textContent=byPay('Kaspi QR').toLocaleString()+' ₸';
+  document.getElementById('s-tr').textContent=byPay('Перевод').toLocaleString()+' ₸';
+  document.getElementById('s-debt').textContent=byPay('Долг').toLocaleString()+' ₸';
+  // Инфо о смене
+  const shiftInfoEl=document.getElementById('shift-info');
+  if(shiftInfoEl){
+    const sd=new Date(S.shiftStartTs);
+    const op=S.operatorName?` · Сотрудник: ${S.operatorName}`:'';
+    shiftInfoEl.textContent='Смена с '+sd.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})+op;
+  }
+  const c=document.getElementById('log-cont');
+  const live=Object.values(S.liveSessions||{});
+  const liveRows=live.map(s=>`<tr style="background:rgba(240,160,48,.08);">
+    <td>${s.startTime} <span style="font-size:10px;background:var(--warn-l);color:var(--warn);padding:2px 6px;border-radius:4px;font-weight:700;">В процессе</span></td>
+    <td>${s.box===1?'Малый':'Большой'}</td>
+    <td>${s.name||'—'}<br><span style="color:var(--text-sec);font-size:11px">${s.phone}</span></td>
+    <td>${s.car}</td><td>—</td><td>—</td><td>—</td>
+    <td style="color:var(--warn);font-weight:700">идёт...</td>
+  </tr>`).join('');
+  const pb=p=>{const cls={Наличка:'b-cash','Kaspi QR':'b-qr',Перевод:'b-tr',Долг:'b-debt'}[p]||'b-cash';return `<span class="badge ${cls}">${p}</span>`;};
+  const doneRows=[...shiftSessions].reverse().map(s=>`<tr>
+    <td>${s.time}</td>
+    <td>${s.box===1?'Малый':'Большой'}</td>
+    <td>${s.name||'—'}<br><span style="color:var(--text-sec);font-size:11px">${s.phone}</span></td>
+    <td>${s.car}</td>
+    <td>${pb(s.pay)}</td>
+    <td>${s.price.toLocaleString()} ₸</td>
+    <td>${s.extras?s.extras.toLocaleString()+' ₸':'—'}</td>
+    <td><b style="color:var(--teal)">${s.total.toLocaleString()} ₸</b></td>
+  </tr>`).join('');
+  if(!cnt&&!live.length){c.innerHTML='<div class="empty">Сеансов пока нет</div>';return;}
+  c.innerHTML='<table><thead><tr><th>Время</th><th>Бокс</th><th>Клиент</th><th>Авто</th><th>Оплата</th><th>Мойка</th><th>Доп</th><th>Итого</th></tr></thead><tbody>'+liveRows+doneRows+'</tbody></table>';
+}
+
+function doStartNewShift(){
+  S.shiftStartTs = Date.now();
+  S.shiftStartDate = new Date().toLocaleDateString('ru-RU');
+  S.shiftElapsed = 0;
+  localStorage.setItem('cw_shiftStart', S.shiftStartDate);
+  localStorage.setItem('cw_shiftStartTs', S.shiftStartTs);
+  localStorage.setItem('cw_shiftElapsed','0');
+  S.liveSessions = {};
+  document.getElementById('shift-confirm').style.display='none';
+  renderShift();
+  playBeep(523,0.1);setTimeout(()=>playBeep(659,0.1),120);setTimeout(()=>playBeep(784,0.15),240);
+}
+
+// DASHBOARD
+let currentFilter='today';
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const customRow=document.getElementById('custom-date-row');
+  if(customRow)customRow.style.display=f==='custom'?'flex':'none';
+  // Set default custom dates if empty
+  if(f==='custom'){
+    const today=new Date().toISOString().split('T')[0];
+    const fromEl=document.getElementById('custom-date-from');
+    const toEl=document.getElementById('custom-date-to');
+    if(fromEl&&!fromEl.value)fromEl.value=today;
+    if(toEl&&!toEl.value)toEl.value=today;
+  }
+  renderDash();
+}
+function filterLabel(){return {today:'Сегодня',yesterday:'Вчера',week:'7 дней',month:'Месяц','3months':'3 месяца',all:'Всё время',custom:'Произвольный период'}[currentFilter]||'';}
+function getFilteredSessions(){
+  const now=new Date();
+  const pd=d=>{try{const[dd,mm,yy]=d.split('.');return new Date(yy,mm-1,dd);}catch{return new Date(0);}};
+  const today=now.toLocaleDateString('ru-RU');
+  const yesterday=new Date(now-864e5).toLocaleDateString('ru-RU');
+  if(currentFilter==='custom'){
+    const fromVal=document.getElementById('custom-date-from')?.value;
+    const toVal=document.getElementById('custom-date-to')?.value;
+    if(!fromVal||!toVal)return S.sessions;
+    const from=new Date(fromVal);from.setHours(0,0,0,0);
+    const to=new Date(toVal);to.setHours(23,59,59,999);
+    return S.sessions.filter(s=>pd(s.date)>=from&&pd(s.date)<=to);
+  }
+  switch(currentFilter){
+    case 'today':     return S.sessions.filter(s=>s.date===today);
+    case 'yesterday': return S.sessions.filter(s=>s.date===yesterday);
+    case 'week':      return S.sessions.filter(s=>pd(s.date)>=new Date(now-7*864e5));
+    case 'month':     return S.sessions.filter(s=>pd(s.date)>=new Date(now-30*864e5));
+    case '3months':   return S.sessions.filter(s=>pd(s.date)>=new Date(now-90*864e5));
+    default:          return S.sessions;
+  }
+}
+function todaySessions(){const d=new Date().toLocaleDateString('ru-RU');return S.sessions.filter(s=>s.date===d);}
+function renderDash(){
+  const filtered=getFilteredSessions();
+  const rev=filtered.reduce((s,x)=>s+x.total,0);
+  const cnt=filtered.length;
+  const exp=S.expenses.reduce((s,x)=>s+x.amount,0);
+  const profit=rev-exp;
+  document.getElementById('d-profit').textContent=(profit>=0?'+':'')+profit.toLocaleString()+' ₸';
+  document.getElementById('d-profit').style.color=profit>=0?'var(--teal)':'var(--danger)';
+  document.getElementById('d-profit-sub').textContent=filterLabel()+' · выручка '+rev.toLocaleString()+' ₸ − расходы '+exp.toLocaleString()+' ₸';
+  document.getElementById('d-profit-label').textContent='↗ Прибыль · '+filterLabel();
+  document.getElementById('d-cars').textContent=cnt;
+  document.getElementById('d-avg').textContent=cnt?Math.round(rev/cnt).toLocaleString()+' ₸':'0 ₸';
+  const now2=new Date();
+  const pd2=d=>{try{const[dd,mm,yy]=d.split('.');return new Date(yy,mm-1,dd);}catch{return new Date(0);}};
+  document.getElementById('d-week').textContent=S.sessions.filter(s=>pd2(s.date)>=new Date(now2-7*864e5)).reduce((s,x)=>s+x.total,0).toLocaleString()+' ₸';
+  document.getElementById('d-month').textContent=S.sessions.filter(s=>pd2(s.date)>=new Date(now2-30*864e5)).reduce((s,x)=>s+x.total,0).toLocaleString()+' ₸';
+  const hours=Array.from({length:14},(_,i)=>i+8);
+  const counts=hours.map(h=>filtered.filter(s=>{try{return parseInt(s.time.split(':')[0])===h;}catch{return false;}}).length);
+  const maxC=Math.max(...counts,1);
+  document.getElementById('d-hours').innerHTML=hours.map((h,i)=>`
+    <div class="hour-bar-wrap">
+      <div class="hour-bar" style="height:${Math.max(counts[i]/maxC*100,2)}%;background:${counts[i]>0?'var(--teal)':'var(--border)'};"></div>
+      <div class="hour-label">${h}</div>
+    </div>`).join('');
+  const top=Object.values(S.clients).sort((a,b)=>b.total-a.total).slice(0,5);
+  document.getElementById('d-top-clients').innerHTML=top.length?
+    top.map((c,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+      <span><b style="color:var(--teal)">#${i+1}</b> ${c.name||c.phone} <span style="color:var(--text-sec);font-size:11px">${c.visits} визитов</span></span>
+      <b style="color:var(--teal)">${c.total.toLocaleString()} ₸</b>
+    </div>`).join(''):
+    '<div class="empty" style="padding:1.5rem">Нет данных</div>';
+}
+
+// DEBTS
+function addDebt(){
+  const name=document.getElementById('debt-name').value.trim();
+  const amount=parseInt(document.getElementById('debt-amount').value);
+  const note=document.getElementById('debt-note').value.trim();
+  if(!name||!amount){alert('Введите имя/телефон и сумму');return;}
+  S.debts.push({id:Date.now(),name,amount,note,date:new Date().toLocaleDateString('ru-RU'),paid:false});
+  save();
+  document.getElementById('debt-name').value='';
+  document.getElementById('debt-amount').value='';
+  document.getElementById('debt-note').value='';
+  renderDebts();
+}
+function payDebt(id){
+  const d=S.debts.find(x=>x.id===id);
+  if(!d)return;
+  d.paid=true;save();renderDebts();
+}
+function togglePaidDebts(){
+  const el=document.getElementById('paid-debts-list');
+  const btn=document.getElementById('paid-toggle-btn');
+  if(el.style.display==='none'){el.style.display='block';btn.textContent='Скрыть';renderPaidDebts();}
+  else{el.style.display='none';btn.textContent='Показать';}
+}
+function renderPaidDebts(){
+  const paid=S.debts.filter(x=>x.paid);
+  const el=document.getElementById('paid-debts-list');
+  if(!paid.length){el.innerHTML='<div class="empty" style="padding:1.5rem">Нет погашенных долгов</div>';return;}
+  el.innerHTML=paid.map(d=>`
+    <div class="debt-item" style="opacity:.6;border-style:dashed;">
+      <div class="debt-info">
+        <div class="debt-name">◉ ${d.name} <span style="font-size:11px;background:var(--teal-l);color:var(--teal);padding:2px 7px;border-radius:999px;font-weight:700;margin-left:6px;">Погашен</span></div>
+        <div class="debt-details">${d.date}${d.note?' · '+d.note:''}</div>
+      </div>
+      <span class="debt-amount" style="color:var(--text-sec);text-decoration:line-through;">${d.amount.toLocaleString()} ₸</span>
+    </div>`).join('');
+}
+function renderDebts(){
+  const active=S.debts.filter(x=>!x.paid);
+  const total=active.reduce((s,x)=>s+x.amount,0);
+  document.getElementById('debt-total-val').textContent=total.toLocaleString()+' ₸';
+  const c=document.getElementById('debts-list');
+  if(!active.length){c.innerHTML='<div class="empty">Активных долгов нет</div>';}
+  else c.innerHTML=active.map(d=>`
+    <div class="debt-item">
+      <div class="debt-info">
+        <div class="debt-name">◉ ${d.name}</div>
+        <div class="debt-details">${d.date}${d.note?' · '+d.note:''}</div>
+      </div>
+      <span class="debt-amount">${d.amount.toLocaleString()} ₸</span>
+      <button class="debt-pay-btn" onclick="payDebt(${d.id})">✓ Погасил</button>
+    </div>`).join('');
+  // Обновить список погашенных если открыт
+  if(document.getElementById('paid-debts-list')?.style.display!=='none')renderPaidDebts();
+}
+
+// CLIENTS
+function renderClients(){
+  const q=(document.getElementById('client-search')||{value:''}).value.toLowerCase();
+  const list=Object.values(S.clients)
+    .filter(c=>!q||(c.phone&&c.phone.includes(q))||(c.name&&c.name.toLowerCase().includes(q)))
+    .sort((a,b)=>b.total-a.total);
+  const c=document.getElementById('clients-cont');
+  if(!list.length){c.innerHTML='<div class="empty">Клиентов пока нет</div>';return;}
+  c.innerHTML=list.map(cl=>`
+    <div class="client-card">
+      <div class="client-row" onclick="toggleHistory('${cl.phone.replace(/\D/g,'')}')">
+        <div>
+          ${cl.name?`<div class="client-name"><span style="font-style:normal">◉</span> ${cl.name}</div>`:''}
+          <div class="client-phone"><span style="font-style:normal">✆</span> ${cl.phone}</div>
+          <div class="client-meta">${cl.visits} визитов · последний: ${cl.lastDate} · ${cl.lastCar}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="client-total">${cl.total.toLocaleString()} ₸</div>
+          <div style="font-size:11px;color:var(--text-sec)">всего потрачено</div>
+        </div>
+      </div>
+      <div class="client-history" id="hist-${cl.phone.replace(/\D/g,'')}">
+        <p class="sl" style="margin-bottom:10px">История визитов</p>
+        ${(cl.history||[]).length?
+          '<table><thead><tr><th>Дата</th><th>Время</th><th>Авто</th><th>Оплата</th><th>Сумма</th></tr></thead><tbody>'+
+          [...(cl.history||[])].reverse().map(h=>`<tr><td>${h.date}</td><td>${h.time}</td><td>${h.car}</td><td>${h.pay}</td><td><b>${h.total.toLocaleString()} ₸</b></td></tr>`).join('')+'</tbody></table>':
+          '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">История пуста</div>'
+        }
+      </div>
+    </div>`).join('');
+}
+function toggleHistory(id){const el=document.getElementById('hist-'+id);if(el)el.classList.toggle('open');}
+
+// EXPENSES
+function addExpense(){
+  const cat=document.getElementById('exp-cat').value;
+  const desc=document.getElementById('exp-desc').value.trim();
+  const amount=parseInt(document.getElementById('exp-amount').value);
+  if(!cat||!amount){alert('Выберите категорию и введите сумму');return;}
+  S.expenses.push({cat,desc,amount,
+    time:new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}),
+    date:new Date().toLocaleDateString('ru-RU')});
+  save();
+  document.getElementById('exp-cat').value='';
+  document.getElementById('exp-desc').value='';
+  document.getElementById('exp-amount').value='';
+  renderExpenses();
+}
+function renderExpenses(){
+  const total=S.expenses.reduce((s,x)=>s+x.amount,0);
+  document.getElementById('exp-total-badge').textContent=total.toLocaleString()+' ₸';
+  const c=document.getElementById('exp-cont');
+  if(!S.expenses.length){c.innerHTML='<div class="empty">Расходов пока нет</div>';return;}
+  c.innerHTML='<table><thead><tr><th>Время</th><th>Категория</th><th>Описание</th><th>Сумма</th></tr></thead><tbody>'+
+    [...S.expenses].reverse().map(e=>
+      `<tr><td>${e.time}</td><td>${e.cat}</td><td>${e.desc||'—'}</td><td style="color:var(--danger);font-weight:700">−${e.amount.toLocaleString()} ₸</td></tr>`
+    ).join('')+'</tbody></table>';
+}
+
+// SHIFT LOG
+function renderShiftLog(){
+  const q=(document.getElementById('sl-search')||{value:''}).value.toLowerCase();
+  const list=[...S.shiftLog].filter(r=>!q||r.operator.toLowerCase().includes(q)).reverse();
+
+  // Итоги
+  const totalRev=S.shiftLog.reduce((s,x)=>s+x.revenue,0);
+  const totalCars=S.shiftLog.reduce((s,x)=>s+x.cars,0);
+  const avgRev=S.shiftLog.length?Math.round(totalRev/S.shiftLog.length):0;
+  const avgDur=S.shiftLog.length?Math.round(S.shiftLog.reduce((s,x)=>s+x.durationSec,0)/S.shiftLog.length):0;
+  const avgH=Math.floor(avgDur/3600),avgM=Math.floor((avgDur%3600)/60);
+  document.getElementById('sl-total').textContent=S.shiftLog.length;
+  document.getElementById('sl-rev').textContent=totalRev.toLocaleString()+' ₸';
+  document.getElementById('sl-avg').textContent=avgRev.toLocaleString()+' ₸';
+  document.getElementById('sl-dur').textContent=avgH>0?`${avgH}ч ${avgM}м`:`${avgM} мин`;
+
+  const c=document.getElementById('sl-cont');
+  if(!list.length){c.innerHTML='<div class="empty">Смен пока нет — они появятся после первой остановки смены</div>';return;}
+
+  c.innerHTML=list.map(r=>{
+    const durH=Math.floor(r.durationSec/3600),durM=Math.floor((r.durationSec%3600)/60);
+    const durStr=durH>0?`${durH} ч ${durM} мин`:`${durM} мин`;
+    const profitColor=r.profit>=0?'var(--teal)':'var(--danger)';
+    return `<div style="border:1px solid var(--border);border-radius:var(--rs);margin-bottom:12px;overflow:hidden;">
+      <!-- Шапка смены -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg3);cursor:pointer;" onclick="toggleShiftDetail(${r.id})">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;">◉ ${r.operator||'—'}</div>
+            <div style="font-size:12px;color:var(--text-sec);margin-top:2px;">${r.date} · ${r.startTime} — ${r.endTime} · ${durStr}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:20px;align-items:center;">
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text-sec);">Машин</div>
+            <div style="font-size:18px;font-weight:800;">${r.cars}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text-sec);">Выручка</div>
+            <div style="font-size:18px;font-weight:800;color:var(--teal);">${r.revenue.toLocaleString()} ₸</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:var(--text-sec);">Прибыль</div>
+            <div style="font-size:18px;font-weight:800;color:${profitColor};">${r.profit>=0?'+':''}${r.profit.toLocaleString()} ₸</div>
+          </div>
+          <div style="color:var(--text-dim);font-size:18px;">⌄</div>
+        </div>
+      </div>
+      <!-- Детали -->
+      <div id="shiftdetail-${r.id}" style="display:none;padding:14px 16px;border-top:1px solid var(--border);">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;">
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;">
+            <div style="font-size:10px;color:var(--teal);font-weight:700;margin-bottom:3px;">💵 НАЛИЧКА</div>
+            <div style="font-size:16px;font-weight:800;color:var(--teal);">${(r.byPay?.cash||0).toLocaleString()} ₸</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;">
+            <div style="font-size:10px;color:var(--info);font-weight:700;margin-bottom:3px;">▣ KASPI QR</div>
+            <div style="font-size:16px;font-weight:800;color:var(--info);">${(r.byPay?.qr||0).toLocaleString()} ₸</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;">
+            <div style="font-size:10px;color:var(--purple);font-weight:700;margin-bottom:3px;">➤ ПЕРЕВОД</div>
+            <div style="font-size:16px;font-weight:800;color:var(--purple);">${(r.byPay?.tr||0).toLocaleString()} ₸</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--rs);padding:10px 12px;">
+            <div style="font-size:10px;color:var(--danger);font-weight:700;margin-bottom:3px;">⏱ ДОЛГ</div>
+            <div style="font-size:16px;font-weight:800;color:var(--danger);">${(r.byPay?.debt||0).toLocaleString()} ₸</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;font-size:13px;color:var(--text-sec);">
+          <span>Расходы за смену: <b style="color:var(--danger)">−${(r.expenses||0).toLocaleString()} ₸</b></span>
+          <span>Средний чек: <b style="color:var(--text)">${r.cars?Math.round(r.revenue/r.cars).toLocaleString():0} ₸</b></span>
+          <span>Начало: <b style="color:var(--text)">${r.startTime}</b></span>
+          <span>Конец: <b style="color:var(--text)">${r.endTime}</b></span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleShiftDetail(id){
+  const el=document.getElementById('shiftdetail-'+id);
+  if(el)el.style.display=el.style.display==='none'?'block':'none';
+}
+
+renderDebts();
+restoreShiftState();
+</script>
+</body>
+</html>
